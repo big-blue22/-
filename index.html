@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インタラクティブSPA：平均値の理解と活用</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices: 
+        - Mean Definition: Text + Interactive input for calculation (HTML, JS) - Goal: Inform, Interaction: User input & calculation. Justification: Active learning.
+        - Mean Advantages (Data Issues, Outliers): Text + Dynamic text/simple bar chart (HTML, JS, Chart.js) - Goal: Illustrate, Interaction: Toggle datasets/add outlier. Justification: Visual impact.
+        - Mean Advantages (Moving Average): Text + Line Chart (Chart.js, JS) - Goal: Illustrate trend, Interaction: View raw vs. smoothed. Justification: Clear smoothing effect.
+        - Mean Limitations (Not Typical, Outlier Influence, Distribution): Text + Examples/Bar Charts (HTML, JS, Chart.js) - Goal: Explain/Compare, Interaction: View examples/toggle data. Justification: Visual clarification of limitations.
+        - Median & Mode: Text + Interactive example (HTML, JS, Chart.js) - Goal: Inform/Compare, Interaction: See all three measures for a dataset. Justification: Highlight utility with skewed data.
+        - Summary: Text (HTML) - Goal: Summarize. Justification: Reinforce learning.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .content-section {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+        .interactive-area {
+            background-color: #f9fafb; /* stone-50 like */
+            border: 1px solid #e5e7eb; /* stone-200 like */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .data-input {
+            border-color: #3b82f6; /* sky-500 */
+        }
+        .calc-button {
+            background-color: #3b82f6; /* sky-500 */
+            color: white;
+        }
+        .calc-button:hover {
+            background-color: #2563eb; /* sky-600 */
+        }
+        h1, h2, h3 {
+            color: #0369a1; /* sky-700 */
+        }
+        .nav-button {
+            background-color: #e0f2fe; /* sky-100 */
+            color: #0c4a6e; /* sky-800 */
+            border: 1px solid #7dd3fc; /* sky-300 */
+        }
+        .nav-button:hover {
+            background-color: #bae6fd; /* sky-200 */
+        }
+        .nav-button.active {
+            background-color: #3b82f6; /* sky-500 */
+            color: white;
+            font-weight: bold;
+        }
+        .tooltip-custom {
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-sky-700 text-white py-8 shadow-lg">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-4xl font-bold text-white">データ分析における平均値の理解と活用</h1>
+            <p class="mt-2 text-lg text-sky-100">平均値の基本から応用、限界までをインタラクティブに学ぼう！</p>
+        </div>
+    </header>
+
+    <nav class="sticky top-0 bg-white shadow-md z-50 py-3">
+        <div class="container mx-auto px-4 flex flex-wrap justify-center gap-2">
+            <button onclick="scrollToSection('section1')" class="nav-button px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150">平均値とは？</button>
+            <button onclick="scrollToSection('section2')" class="nav-button px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150">利点</button>
+            <button onclick="scrollToSection('section3')" class="nav-button px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150">限界と注意点</button>
+            <button onclick="scrollToSection('section4')" class="nav-button px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150">補完する統計量</button>
+            <button onclick="scrollToSection('section5')" class="nav-button px-4 py-2 rounded-md text-sm font-medium transition-colors duration-150">まとめ</button>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6">
+        <section id="section1" class="content-section border-b border-stone-200">
+            <h2 class="text-3xl font-semibold mb-6 text-center">1. 平均値とは？</h2>
+            <p class="mb-4 text-lg leading-relaxed">このセクションでは、データの分析で最も基本的かつ頻繁に使用される「平均値」の定義と、その基本的な計算方法について解説します。平均値は、データセット全体の中心的な傾向を把握するための第一歩です。</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-medium mb-3">定義と計算</h3>
+                <p class="mb-4">平均値とは、データに含まれる全ての数値の合計を、データの総数で割ることによって得られる値です。例えば、10人の学生の身長データがある場合、全員の身長を合計し、それを10（人数）で割ったものが平均身長となります。</p>
+                <p class="mb-4 italic">音源ソース「2025-05-29_10-27-37.mp3」より：「平均とは、データに含まれる数値の総和をデータの総数で割った値です。」</p>
+                
+                <div class="interactive-area">
+                    <h4 class="text-xl font-medium mb-3">平均値を計算してみよう！</h4>
+                    <p class="mb-3">コンマ区切りで数値を入力してください (例: 10,20,30,40,50)</p>
+                    <input type="text" id="numbersForMean" class="data-input w-full p-2 border rounded-md mb-3 focus:ring-2 focus:ring-sky-300" placeholder="例: 75,80,92,68,85">
+                    <button onclick="calculateBasicMean()" class="calc-button px-6 py-2 rounded-md font-medium transition-colors duration-150">計算する</button>
+                    <div id="basicMeanResult" class="mt-4 p-3 bg-sky-50 rounded-md border border-sky-200 text-sky-700">ここに結果が表示されます。</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section2" class="content-section border-b border-stone-200">
+            <h2 class="text-3xl font-semibold mb-6 text-center">2. 平均値を計算する理由と利点</h2>
+            <p class="mb-4 text-lg leading-relaxed">平均値を計算することには多くの利点があります。データセットの概要を素早く把握したり、異常を発見したりする手助けとなります。このセクションでは、具体的な利点と、それがどのようにデータ分析に役立つかを見ていきましょう。</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">データ全体の状況把握</h3>
+                    <p>平均値は、データが全体的に大きいのか小さいのかといった大まかな傾向を、一つの数値で簡単に示すことができます。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">データ収集の不具合察知</h3>
+                    <p>平均値が常識からかけ離れた値の場合、データ収集時の単位間違いや計測機器の故障など、何らかの不具合があった可能性を示唆します。</p>
+                    <div class="interactive-area">
+                        <h4 class="text-xl font-medium mb-2">例：学生の平均身長</h4>
+                        <p class="mb-2 text-sm">データセットを選択して平均値を確認しましょう。</p>
+                        <select id="heightDatasetSelector" class="w-full p-2 border rounded-md mb-3 focus:ring-2 focus:ring-sky-300">
+                            <option value="normal">正常なデータセット (cm)</option>
+                            <option value="error">異常なデータセット (cm)</option>
+                        </select>
+                        <button onclick="checkHeightData()" class="calc-button px-4 py-2 rounded-md text-sm">平均値を確認</button>
+                        <div id="heightDataResult" class="mt-3 p-2 bg-sky-50 rounded-md border border-sky-200 text-sm"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">外れ値の発見</h3>
+                    <p>平均値から大きくかけ離れた個々のデータ（外れ値）を発見する手がかりとなります。ただし、判断はデータの種類によります。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">欠損データの補完</h3>
+                    <p>一部データが欠損している場合、他のデータの平均値で補う手法があります（データの変動が小さい場合に有効）。</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                <h3 class="text-2xl font-medium mb-3">時系列データの平滑化（移動平均）</h3>
+                <p class="mb-4">時系列データ（株価など日々変動するデータ）において、一定期間の平均値を計算する「移動平均」を用いると、細かい変動が抑えられ、全体的なトレンドを把握しやすくなります。</p>
+                <div class="interactive-area">
+                    <h4 class="text-xl font-medium mb-2">例：株価データの移動平均</h4>
+                    <p class="mb-3 text-sm">下のグラフは、模擬的な株価データ（青線）と、その5日移動平均（赤線）を示しています。移動平均線が短期的な変動をならし、傾向を見やすくしている点に注目してください。</p>
+                    <div class="chart-container h-[350px] md:h-[400px]">
+                        <canvas id="movingAverageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section3" class="content-section border-b border-stone-200">
+            <h2 class="text-3xl font-semibold mb-6 text-center">3. 平均値の限界と注意点</h2>
+            <p class="mb-4 text-lg leading-relaxed">平均値は便利な指標ですが、万能ではありません。平均値だけを見ていると、データの重要な側面を見落とす可能性があります。このセクションでは、平均値が持つ限界と、データ解釈における注意点について解説します。</p>
+            <p class="mb-6 italic text-center">音源ソース「2025-05-29_10-50-45.mp3」より：「このように、平均という値一つだけでは、その収集したデータの全体像がきちんと捉えられているとは限らないようです。」</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">典型的な値とは限らない</h3>
+                    <p class="mb-2">平均値は計算上の値であり、実際にその値を持つデータが存在しないこともあります。例えば、1世帯あたりの子供の平均人数が1.65人でも、1.65人の子供がいる世帯は実在しません。</p>
+                    <div class="interactive-area">
+                        <h4 class="text-xl font-medium mb-2">例：平均値が存在しないデータ</h4>
+                        <p class="mb-2 text-sm">データ: [1, 2, 9, 10]</p>
+                        <p class="text-sm">平均値: <span id="nonTypicalMean" class="font-bold">計算中...</span></p>
+                        <p class="mt-1 text-xs text-gray-600">このデータセットには、計算された平均値と同じ値を持つデータ点は存在しません。</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">外れ値に影響されやすい</h3>
+                    <p class="mb-2">極端に大きい、または小さい外れ値がデータに含まれていると、平均値はその影響を強く受け、データ全体の典型的な状況を反映しなくなることがあります。</p>
+                    <div class="interactive-area">
+                        <h4 class="text-xl font-medium mb-2">例：社員の年収</h4>
+                        <p class="text-sm mb-2">下のグラフは、ある会社の社員5人の年収データです。「社長の年収あり/なし」で平均値がどう変わるか見てみましょう。（年収単位：万円）</p>
+                        <button onclick="toggleSalaryOutlier(false)" class="calc-button px-3 py-1 rounded-md text-xs mb-1">社長の年収なし (社員4人)</button>
+                        <button onclick="toggleSalaryOutlier(true)" class="calc-button px-3 py-1 rounded-md text-xs mb-1">社長の年収あり (社長含む5人)</button>
+                        <div class="chart-container h-[280px] md:h-[320px]">
+                            <canvas id="outlierImpactChart"></canvas>
+                        </div>
+                        <p id="outlierImpactText" class="mt-2 text-sm text-center font-semibold"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                <h3 class="text-2xl font-medium mb-3">データ全体の分布が分からない</h3>
+                <p class="mb-4">平均値はデータの中心傾向を示しますが、データがどのように散らばっているか（ばらつき、分布）は教えてくれません。同じ平均値でも、データの散らばり方は全く異なる場合があります。</p>
+                <div class="interactive-area">
+                    <h4 class="text-xl font-medium mb-2">例：同じ平均気温、異なる分布</h4>
+                    <p class="text-sm mb-3">以下の2つのデータセットは、どちらも平均気温が20℃ですが、日々の気温のばらつきが異なります。</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-center font-medium text-sm">データセットA (安定した気温)</p>
+                            <div class="chart-container h-[250px] md:h-[300px]">
+                                <canvas id="distributionChartA"></canvas>
+                            </div>
+                            <p class="text-center text-xs mt-1">平均: 20℃</p>
+                        </div>
+                        <div>
+                            <p class="text-center font-medium text-sm">データセットB (寒暖差大)</p>
+                            <div class="chart-container h-[250px] md:h-[300px]">
+                                <canvas id="distributionChartB"></canvas>
+                            </div>
+                             <p class="text-center text-xs mt-1">平均: 20℃</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section4" class="content-section border-b border-stone-200">
+            <h2 class="text-3xl font-semibold mb-6 text-center">4. 平均値を補完する統計量：中央値と最頻値</h2>
+            <p class="mb-4 text-lg leading-relaxed">平均値の限界を補い、データをより正確に理解するためには、他の統計量も合わせて見ることが重要です。ここでは代表的なものとして「中央値」と「最頻値」を紹介します。</p>
+            <p class="mb-6 italic text-center">音源ソースより：「このように偏った（データの分布の）場合、中央値（メディアン）や最頻値（モード）などの値を使うことによって、よりデータの全体像を掴むことが可能になります。」</p>
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">中央値 (Median)</h3>
+                    <p>データを小さい順（または大きい順）に並べたとき、ちょうど真ん中に位置する値です。データの個数が奇数なら真ん中の値、偶数なら真ん中2つの値の平均値となります。<strong class="text-sky-600">外れ値の影響を受けにくい</strong>という特徴があります。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-medium mb-3">最頻値 (Mode)</h3>
+                    <p>データの中で最も多く出現する値です。離散的なデータやカテゴリーデータで、最も典型的な値を把握するのに役立ちます。</p>
+                </div>
+            </div>
+             <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-medium mb-3">平均値・中央値・最頻値を比べてみよう！</h3>
+                <p class="mb-3">以下のデータセット（例：社員の年収）で、それぞれの統計量を確認してみましょう。データには外れ値（社長の年収3800万円）が含まれています。</p>
+                <p class="mb-2 font-mono text-sm">データ: 300, 300, 300, 300, 3800 (万円)</p>
+                <div class="interactive-area">
+                    <button onclick="calculateMMM()" class="calc-button px-6 py-2 rounded-md font-medium">統計量を計算</button>
+                    <div id="mmmResults" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-3 bg-sky-50 rounded-md border border-sky-200">
+                            <h4 class="font-semibold text-sky-700">平均値:</h4>
+                            <p id="mmmMean" class="text-lg"></p>
+                        </div>
+                        <div class="p-3 bg-teal-50 rounded-md border border-teal-200">
+                            <h4 class="font-semibold text-teal-700">中央値:</h4>
+                            <p id="mmmMedian" class="text-lg"></p>
+                        </div>
+                        <div class="p-3 bg-indigo-50 rounded-md border border-indigo-200">
+                            <h4 class="font-semibold text-indigo-700">最頻値:</h4>
+                            <p id="mmmMode" class="text-lg"></p>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-sm">この例では、中央値(300万円)が多くの社員の実態をよりよく表している可能性があります。平均値(1000万円)は社長の高年収に大きく影響されています。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="section5" class="content-section">
+            <h2 class="text-3xl font-semibold mb-6 text-center">5. まとめ</h2>
+            <p class="mb-4 text-lg leading-relaxed">このSPAを通じて、平均値がデータ分析において非常に有用な基本統計量であると同時に、その限界を理解し、他の統計量（中央値、最頻値など）と合わせて多角的にデータを捉えることの重要性を学んできました。</p>
+            <div class="bg-white p-8 rounded-lg shadow-xl">
+                <h3 class="text-2xl font-medium mb-4 text-sky-700">重要なポイント</h3>
+                <ul class="list-disc list-inside space-y-2">
+                    <li>平均値はデータの中心傾向を把握するのに役立つが、外れ値に影響されやすい。</li>
+                    <li>平均値だけではデータの分布（ばらつき）は分からない。</li>
+                    <li>中央値は外れ値の影響を受けにくく、データが偏っている場合に代表値として有効なことがある。</li>
+                    <li>最頻値は最も頻繁に出現する値を示し、カテゴリーデータなどで特に有用。</li>
+                    <li>データ分析では、複数の統計量やグラフを用いて、データを多角的に解釈することが誤解を避け、より深い洞察を得るために不可欠。</li>
+                </ul>
+                <p class="mt-6 text-md">これからもデータに触れる際には、これらの知識を活かして、より正確で洞察に満ちた分析を心がけましょう。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-sm">&copy; 2025 インタラクティブSPA. 提供された情報を基に作成。</p>
+            <p class="text-xs mt-1">このアプリケーションは教育目的で作成されました。</p>
+        </div>
+    </footer>
+
+    <script>
+        // Helper function for calculating mean
+        function calculateMean(numbers) {
+            if (!numbers || numbers.length === 0) return NaN;
+            const sum = numbers.reduce((acc, val) => acc + val, 0);
+            return sum / numbers.length;
+        }
+
+        // Section 1: Basic Mean Calculation
+        function calculateBasicMean() {
+            const inputStr = document.getElementById('numbersForMean').value;
+            const resultDiv = document.getElementById('basicMeanResult');
+            if (!inputStr.trim()) {
+                resultDiv.innerHTML = '<p class="text-red-500">数値を入力してください。</p>';
+                return;
+            }
+            const numbers = inputStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+            
+            if (numbers.length === 0) {
+                resultDiv.innerHTML = '<p class="text-red-500">有効な数値が入力されていません。</p>';
+                return;
+            }
+            
+            const mean = calculateMean(numbers);
+            resultDiv.innerHTML = `入力された数値: <span class="font-semibold">${numbers.join(', ')}</span><br>
+                                   計算された平均値: <strong class="text-xl">${mean.toFixed(2)}</strong><br>
+                                   計算式: (${numbers.join(' + ')}) / ${numbers.length} = ${mean.toFixed(2)}`;
+        }
+
+        // Section 2: Height Data Example
+        const heightDatasets = {
+            normal: [165, 170, 155, 180, 162], // Avg: 166.4
+            error: [1.65, 1.70, 1.55, 1.80, 1.62] // Avg: 1.664 (assuming error in units, e.g. m instead of cm)
+        };
+        function checkHeightData() {
+            const selector = document.getElementById('heightDatasetSelector');
+            const selectedDatasetKey = selector.value;
+            const data = heightDatasets[selectedDatasetKey];
+            const mean = calculateMean(data);
+            const resultDiv = document.getElementById('heightDataResult');
+            let interpretation = '';
+            if (selectedDatasetKey === 'normal') {
+                interpretation = `平均身長は約${mean.toFixed(1)}cmです。これは一般的な範囲内と考えられます。`;
+            } else {
+                interpretation = `平均身長は約${mean.toFixed(2)}cmです。この値は非常に小さく、単位の間違い（例：mで記録）や入力ミスが疑われます。`;
+            }
+            resultDiv.innerHTML = `選択データセット: ${selector.options[selector.selectedIndex].text}<br>
+                                   データ: [${data.join(', ')}]<br>
+                                   計算された平均身長: <strong class="text-lg">${mean.toFixed(selectedDatasetKey === 'normal' ? 1:3)} cm</strong><br>
+                                   <span class="text-xs">${interpretation}</span>`;
+        }
+        
+        // Section 2: Moving Average Chart
+        let movingAverageChartInstance;
+        function renderMovingAverageChart() {
+            const ctx = document.getElementById('movingAverageChart').getContext('2d');
+            const rawData = [150, 155, 148, 160, 152, 165, 170, 160, 158, 175, 180, 170, 165, 172, 168];
+            const labels = rawData.map((_, i) => `日${i + 1}`);
+            
+            function calculateMovingAverage(data, windowSize) {
+                let result = [];
+                for (let i = 0; i < data.length; i++) {
+                    if (i < windowSize - 1) {
+                        result.push(null); // Not enough data points for MA
+                    } else {
+                        let sum = 0;
+                        for (let j = 0; j < windowSize; j++) {
+                            sum += data[i - j];
+                        }
+                        result.push(sum / windowSize);
+                    }
+                }
+                return result;
+            }
+            const movingAverage5day = calculateMovingAverage(rawData, 5);
+
+            if (movingAverageChartInstance) {
+                movingAverageChartInstance.destroy();
+            }
+            movingAverageChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '株価',
+                            data: rawData,
+                            borderColor: 'rgb(59, 130, 246)', // sky-500
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2
+                        },
+                        {
+                            label: '5日移動平均',
+                            data: movingAverage5day,
+                            borderColor: 'rgb(239, 68, 68)', // red-500
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2,
+                            borderDash: [5, 5] // Dashed line for MA
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: '価格' }
+                        },
+                        x: {
+                            title: { display: true, text: '時間（日）' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 12 },
+                            padding: 10
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Section 3: Non-Typical Mean
+        function displayNonTypicalMean() {
+            const data = [1, 2, 9, 10];
+            const mean = calculateMean(data);
+            document.getElementById('nonTypicalMean').textContent = mean.toFixed(2);
+        }
+
+        // Section 3: Outlier Impact Chart
+        let outlierImpactChartInstance;
+        const salaryData = {
+            noOutlier: {
+                labels: ['社員A', '社員B', '社員C', '社員D'],
+                data: [300, 320, 280, 310], // Mean: 302.5
+                avgLabel: '平均年収 (社長なし)'
+            },
+            withOutlier: {
+                labels: ['社員A', '社員B', '社員C', '社員D', '社長'],
+                data: [300, 320, 280, 310, 3800], // Mean: 1002
+                avgLabel: '平均年収 (社長あり)'
+            }
+        };
+
+        function toggleSalaryOutlier(showOutlier) {
+            const currentDataKey = showOutlier ? 'withOutlier' : 'noOutlier';
+            const dataConfig = salaryData[currentDataKey];
+            const mean = calculateMean(dataConfig.data);
+
+            const ctx = document.getElementById('outlierImpactChart').getContext('2d');
+            if (outlierImpactChartInstance) {
+                outlierImpactChartInstance.destroy();
+            }
+            outlierImpactChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dataConfig.labels,
+                    datasets: [{
+                        label: '年収 (万円)',
+                        data: dataConfig.data,
+                        backgroundColor: dataConfig.data.map(d => d > 1000 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)'), // red for outlier
+                        borderColor: dataConfig.data.map(d => d > 1000 ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        y: { beginAtZero: true, title: { display: true, text: '年収 (万円)' } } 
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: `${dataConfig.avgLabel}: ${mean.toFixed(1)} 万円` },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw} 万円`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            document.getElementById('outlierImpactText').textContent = `${dataConfig.avgLabel}は ${mean.toFixed(1)} 万円です。${showOutlier ? '社長の年収が平均値を大きく引き上げています。' : '多くの社員の実態に近い値です。'}`;
+        }
+
+        // Section 3: Distribution Charts
+        let distributionChartAInstance, distributionChartBInstance;
+        function renderDistributionCharts() {
+            const dataA = { labels: ['日1', '日2', '日3', '日4', '日5'], values: [19, 20, 20, 20, 21] }; // Mean: 20
+            const dataB = { labels: ['日1', '日2', '日3', '日4', '日5'], values: [10, 15, 20, 25, 30] }; // Mean: 20
+
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, suggestedMax: 35, title: {display: true, text: '気温 (°C)'} } },
+                plugins: { legend: { display: false }, tooltip: {enabled: true} }
+            };
+
+            const ctxA = document.getElementById('distributionChartA').getContext('2d');
+            if (distributionChartAInstance) distributionChartAInstance.destroy();
+            distributionChartAInstance = new Chart(ctxA, {
+                type: 'bar',
+                data: {
+                    labels: dataA.labels,
+                    datasets: [{ label: '気温 (°C)', data: dataA.values, backgroundColor: 'rgba(75, 192, 192, 0.6)', borderColor: 'rgb(75, 192, 192)', borderWidth: 1 }]
+                },
+                options: {...options, plugins: {...options.plugins, title: { display:true, text: `データセットA (平均 ${calculateMean(dataA.values).toFixed(0)}℃)`}}}
+            });
+
+            const ctxB = document.getElementById('distributionChartB').getContext('2d');
+            if (distributionChartBInstance) distributionChartBInstance.destroy();
+            distributionChartBInstance = new Chart(ctxB, {
+                type: 'bar',
+                data: {
+                    labels: dataB.labels,
+                    datasets: [{ label: '気温 (°C)', data: dataB.values, backgroundColor: 'rgba(255, 159, 64, 0.6)', borderColor: 'rgb(255, 159, 64)', borderWidth: 1 }]
+                },
+                 options: {...options, plugins: {...options.plugins, title: { display:true, text: `データセットB (平均 ${calculateMean(dataB.values).toFixed(0)}℃)`}}}
+            });
+        }
+        
+        // Section 4: Mean, Median, Mode
+        function calculateMMM() {
+            const data = [300, 300, 300, 300, 3800];
+            
+            // Mean
+            const mean = calculateMean(data);
+            document.getElementById('mmmMean').textContent = mean.toFixed(1) + ' 万円';
+
+            // Median
+            const sortedData = [...data].sort((a, b) => a - b);
+            let median;
+            const mid = Math.floor(sortedData.length / 2);
+            if (sortedData.length % 2 === 0) {
+                median = (sortedData[mid - 1] + sortedData[mid]) / 2;
+            } else {
+                median = sortedData[mid];
+            }
+            document.getElementById('mmmMedian').textContent = median.toFixed(1) + ' 万円';
+
+            // Mode
+            const frequency = {};
+            let maxFreq = 0;
+            let modes = [];
+            for (const num of data) {
+                frequency[num] = (frequency[num] || 0) + 1;
+                if (frequency[num] > maxFreq) {
+                    maxFreq = frequency[num];
+                }
+            }
+            for (const num in frequency) {
+                if (frequency[num] === maxFreq) {
+                    modes.push(Number(num));
+                }
+            }
+            document.getElementById('mmmMode').textContent = modes.join(', ') + ' 万円';
+        }
+        
+        // Navigation scroll
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+            
+            // Update active button state
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+                if (button.getAttribute('onclick').includes(sectionId)) {
+                    button.classList.add('active');
+                }
+            });
+        }
+        
+        // Initial chart renderings and displays
+        window.onload = () => {
+            renderMovingAverageChart();
+            displayNonTypicalMean();
+            toggleSalaryOutlier(false); // Initial view for salary chart
+            renderDistributionCharts();
+
+            // Set initial active nav button
+            const firstNavButton = document.querySelector('.nav-button');
+            if(firstNavButton) firstNavButton.classList.add('active');
+            
+            // Observe sections for active nav state
+            const sections = document.querySelectorAll('main section');
+            const observerOptions = {
+                root: null,
+                rootMargin: '-50% 0px -50% 0px', // Trigger when section is in middle of viewport
+                threshold: 0
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const sectionId = entry.target.id;
+                        document.querySelectorAll('.nav-button').forEach(btn => {
+                            btn.classList.remove('active');
+                            if (btn.getAttribute('onclick').includes(sectionId)) {
+                                btn.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        };
+    </script>
+</body>
+</html>
